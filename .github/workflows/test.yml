@@ -26,11 +26,7 @@ jobs:
       - name: Generate Copilot Chat upload ZIP
         run: python scripts/package_copilot_skill.py
       - name: Verify checked-in Copilot Chat ZIP
-        if: ${{ hashFiles('releases/ai-slide-engine-copilot.zip') != '' }}
         run: python scripts/verify_skill_zip.py dist/ai-slide-engine-copilot.zip releases/ai-slide-engine-copilot.zip
-      - name: Export initial public package
-        if: ${{ hashFiles('releases/ai-slide-engine-copilot.zip') == '' }}
-        run: python scripts/emit_copilot_package.py dist/ai-slide-engine-copilot.zip
       - run: npm install --ignore-scripts --omit=dev
       - run: npx playwright-core install chromium
       - name: HTML browser and native DrawingML regression
