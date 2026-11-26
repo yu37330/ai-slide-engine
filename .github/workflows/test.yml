@@ -27,3 +27,45 @@ jobs:
       - run: npx playwright-core install chromium
       - name: HTML browser and native DrawingML regression
         run: npm run test:html
+
+  template-parity:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: yuu551/jinno-slide-kit
+          ref: b5814e92b1c4bcc6d78f1c357ebe05de9030f5e2
+          path: .parity-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts
+      - run: npx playwright-core install chromium
+      - run: ln -s "$GITHUB_WORKSPACE/node_modules" .parity-upstream/node_modules
+      - name: Verify frozen HTML catalog and compare all pages independently
+        run: |
+          echo '2e93b9ed51362805d90ccc82df4476444022493b0fa70757a029051cd5ca8d29  skills/ai-slide-engine/templates/catalog.zip' | sha256sum -c -
+          node tests/pixel_parity.mjs .parity-upstream skills/ai-slide-engine/templates/catalog.zip
+  aws-official:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download pinned official AWS icon package for ephemeral testing only
+        run: |
+          url='https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip'
+          curl --fail --location --retry 2 --max-time 90 "$url" -o "$RUNNER_TEMP/aws.zip"
+          sha=d2d166c453526471749d520e0db022c459abef759d2946cf2dd1d1c992dc6526
+          python skills/ai-slide-engine/scripts/aws_assets.py import "$RUNNER_TEMP/aws.zip" "$RUNNER_TEMP/aws-cache" --source "$url" --sha256 "$sha" > "$RUNNER_TEMP/aws-import.json"
+          echo "OFFICIAL_AWS_CACHE=$RUNNER_TEMP/aws-cache" >> "$GITHUB_ENV"
+      - name: Actual AWS S3, Lambda and Bedrock icons
+        run: python -m unittest discover -s tests -p test_aws_official.py -v

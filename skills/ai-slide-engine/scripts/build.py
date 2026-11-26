@@ -12,9 +12,10 @@ import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from jfig import Fig, tw
+from aws_assets import configure, require_icon, safe_svg
 
 OPS = {"T","R","C","L","A","icon","bubble","think","box","frame","card","tag",
-       "head","num","ok","ng","warn","blocked","code"}
+       "head","num","ok","ng","warn","blocked","code","aws"}
 BODY = {"figure","text","table"}
 KINDS = BODY | {"cover","section","closing"}
 ID = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -56,6 +57,12 @@ def svg_check(svg,w,h):
              "defs","marker","line","polyline","polygon"}
     def walk(e, transformed=False, definition=False):
         tag=e.tag.removeprefix(NS)
+        if tag=="svg" and e is not root and "data-aws-icon" in e.attrib:
+            require_icon(e.get("data-aws-icon"))
+            safe_svg(ET.tostring(e,encoding="utf-8"))
+            x,y,a,b=(float(e.get(k,"0")) for k in ("x","y","width","height"))
+            need(x>=0 and y>=0 and a>0 and b>0 and x+a<=w+.01 and y+b<=h+.01,"AWS icon outside canvas")
+            return
         need(e.tag.startswith(NS) and tag in allowed,"unsupported SVG element")
         for k,v in e.attrib.items():
             need(not k.lower().startswith("on") and "href" not in k.lower(),"unsafe attribute")
@@ -84,10 +91,13 @@ def svg_check(svg,w,h):
         for child in e: walk(child,transformed,definition)
     walk(root)
 
-def figure_svg(fig):
+def figure_svg(fig, canvas=None):
     fields(fig,["width","height","alt","operations"])
-    need(type(fig["width"]) is int and fig["width"]==1160 and type(fig["height"]) is int
-         and 340<=fig["height"]<=420,"figure canvas must be 1160 x 340..420")
+    need(type(fig["width"]) is int and type(fig["height"]) is int,"integer figure dimensions required")
+    if canvas is None:
+        need(fig["width"]==1160 and 340<=fig["height"]<=420,"figure canvas must be 1160 x 340..420")
+    else:
+        need((fig["width"],fig["height"])==tuple(canvas) and all(0<x<=2400 for x in canvas),"template canvas dimensions must match original")
     f=Fig(fig["width"],fig["height"],title=text(fig["alt"],True))
     need(isinstance(fig["operations"],list) and 0<len(fig["operations"])<=300,"operations required")
     for op in fig["operations"]:
@@ -99,7 +109,8 @@ def figure_svg(fig):
         for v in [*a,*k.values()]: argsafe(v)
         fn=getattr(f,name)
         p=inspect.signature(fn).bind(*a,**k).arguments
-        need(not p.get("aws"),"offline official AWS assets not configured")
+        if name=="aws": require_icon(p["name"])
+        if p.get("aws"): require_icon(p["aws"])
         for key in ("c","tc","fill","stroke"):
             if key in p and p[key] is not None:
                 need(isinstance(p[key],str) and COLOR.fullmatch(p[key]),"invalid color")
@@ -108,6 +119,8 @@ def figure_svg(fig):
                 need(type(p[key]) in (int,float) and p[key]>=16,"font size minimum 16 px")
         fn(*a,**k)
     result=f.svg()
+    if "data-aws-icon=" in result:
+        result=result.replace('xmlns="http://www.w3.org/2000/svg"','xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"',1)
     svg_check(result,fig["width"],fig["height"])
     return result
 
@@ -260,8 +273,10 @@ def main():
     p=argparse.ArgumentParser();sub=p.add_subparsers(dest="command",required=True)
     v=sub.add_parser("validate");v.add_argument("deck",type=Path)
     b=sub.add_parser("build");b.add_argument("deck",type=Path);b.add_argument("output",type=Path)
+    for parser in (v,b): parser.add_argument("--aws-cache",type=Path)
     a=p.parse_args()
     try:
+        if a.aws_cache: configure(a.aws_cache)
         result=validate(json.loads(a.deck.read_text(encoding="utf-8")))[1] if a.command=="validate" else build(a.deck,a.output)
         print(json.dumps(result,ensure_ascii=False,indent=2))
     except Exception as exc: p.exit(1,f"ERROR: {exc}\n")

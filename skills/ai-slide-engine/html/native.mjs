@@ -22,12 +22,17 @@ async function bundle(dir){
   const deck=await readJson(path.join(dir,'deck.json'));
   if(!['petrol','paper'].includes(manifest.theme)||!Array.isArray(deck.slides)||!deck.slides.length||
       JSON.stringify(manifest.slides)!==JSON.stringify(deck.slides.map(s=>s.id)))throw Error('manifest mismatch');
-  const names=['deck.html','themes/petrol.css','themes/paper.css'];
-  for(const s of deck.slides){
-    if(!/^[A-Za-z0-9_-]+$/.test(s.id))throw Error('invalid slide id');
-    if(s.kind==='figure')names.push('figures/'+s.id+'.svg');
+  let names;
+  for(const s of deck.slides)if(!/^[A-Za-z0-9_-]+$/.test(s.id))throw Error('invalid slide id');
+  if(manifest.version===2){
+    names=manifest.assets;
+    if(!Array.isArray(names)||!names.includes('deck.html')||!names.includes('theme.css')||new Set(names).size!==names.length||
+       names.some(s=>typeof s!=='string'||!(/^(deck\.html|theme\.css|figs\/[A-Za-z0-9_-]+\.svg|themes\/assets\/NotoSansJP-(?:Book450|Bold|Regular)\.woff2)$/.test(s))))throw Error('invalid template assets');
+  }else{
+    names=['deck.html','themes/petrol.css','themes/paper.css'];
+    for(const s of deck.slides)if(s.kind==='figure')names.push('figures/'+s.id+'.svg');
+    if(manifest.font_mode==='approved_assets')for(const n of ['NotoSansJP-Book450.woff2','NotoSansJP-Bold.woff2','NotoSansJP-Regular.woff2'])names.push('themes/assets/'+n);
   }
-  if(manifest.font_mode==='approved_assets')for(const n of ['NotoSansJP-Book450.woff2','NotoSansJP-Bold.woff2','NotoSansJP-Regular.woff2'])names.push('themes/assets/'+n);
   const assets=new Map();
   const root=await fs.realpath(dir);
   for(const name of names){
@@ -59,25 +64,35 @@ async function checkBundle(page, context, manifest, deck, assets, dir){
   issues.push(...await page.evaluate(checkWriting,phrases));
   const figPage=await context.newPage();
   for(const [i,s] of deck.slides.entries()){
-    if(s.kind!=='figure')continue;
-    const src='figures/'+s.id+'.svg',url=ORIGIN+'/'+src,svg=assets.get(url).toString('utf8');
-    await figPage.setViewportSize({width:s.figure.width,height:s.figure.height});
-    // CSP付き同一オリジンのルートへ移動。SVGは生成済みのローカル資産のみ。
-    await figPage.goto(url);
-    await figPage.evaluate(()=>document.fonts.ready);
-    // SVG単体文書をHTML内に配置する検査は、原典measureSvgとinkBoxのDOM契約に合わせる。
-    const wrapper=ORIGIN+'/__figure_check.html';
-    assets.set(wrapper,Buffer.from('<!doctype html><html><head><style>html,body{margin:0}body>svg{display:block;width:100vw;height:100vh}</style></head><body>'+svg+'</body></html>'));
-    await figPage.goto(wrapper);await figPage.evaluate(()=>document.fonts.ready);
-    const r=await figPage.evaluate(measureSvg),ink=await figPage.evaluate(inkBox);
-    issues.push(...svgFindings(r,src,[i+1]));
-    const box=await page.locator('section[id]').nth(i).locator('img').evaluate(e=>{const r=e.getBoundingClientRect(),s=e.closest('section').getBoundingClientRect();return {w:r.width,y:r.top-s.top};});
-    if(!ink||((ink.x1-ink.x0<1)&&(ink.y1-ink.y0<1)))issues.push({page:i+1,type:'figure-empty',level:'error',msg:src});
-    else{
-      const {width,height}=s.figure;
-      if(ink.x0<-1||ink.y0<-1||ink.x1>width+1||ink.y1>height+1)issues.push({page:i+1,type:'svg-geometry-outside',level:'error',msg:src,ink});
-      const scale=box.w/width,w=(ink.x1-ink.x0)*scale,h=(ink.y1-ink.y0)*scale,gap=668-(box.y+ink.y1*scale);
-      if(w<720||(h<200&&gap>170))issues.push({page:i+1,type:'figure-small',level:'warn',msg:src,ink});
+    const images=await page.locator('section[id]').nth(i).locator('img').evaluateAll(es=>es.map(e=>{
+      const r=e.getBoundingClientRect(),s=e.closest('section').getBoundingClientRect();
+      return {src:e.getAttribute('src'),url:e.src,w:r.width,y:r.top-s.top};
+    }));
+    for(const box of images){
+      if(!box.url.endsWith('.svg'))continue;
+      const {src,url}=box;
+      if(!assets.has(url))throw Error('unknown SVG asset '+src);
+      const svg=assets.get(url).toString('utf8');
+      await figPage.goto(url);
+      const vb=await figPage.evaluate(()=>{
+        const el=document.documentElement;
+        if(!el.viewBox||!el.viewBox.baseVal.width)return null;
+        const v=el.viewBox.baseVal;return {x:v.x,y:v.y,width:v.width,height:v.height};
+      });
+      if(!vb||vb.width<=0||vb.height<=0||vb.width>10000||vb.height>10000)throw Error('invalid SVG viewBox '+src);
+      await figPage.setViewportSize({width:Math.ceil(vb.width),height:Math.ceil(vb.height)});
+      const wrapper=ORIGIN+'/__figure_check.html';
+      assets.set(wrapper,Buffer.from('<!doctype html><html><head><style>html,body{margin:0}body>svg{display:block;width:100vw;height:100vh}</style></head><body>'+svg+'</body></html>'));
+      await figPage.goto(wrapper);await figPage.evaluate(()=>document.fonts.ready);
+      const r=await figPage.evaluate(measureSvg),ink=await figPage.evaluate(inkBox);
+      issues.push(...svgFindings(r,src,[i+1]));
+      if(!ink||((ink.x1-ink.x0<1)&&(ink.y1-ink.y0<1)))issues.push({page:i+1,type:'figure-empty',level:'error',msg:src});
+      else{
+        const {x,y,width,height}=vb,special=['cover','closing','section'].includes(s.kind);
+        if(ink.x0<x-1||ink.y0<y-1||ink.x1>x+width+1||ink.y1>y+height+1)issues.push({page:i+1,type:'svg-geometry-outside',level:special?'warn':'error',msg:src,ink});
+        const scale=box.w/width,w=(ink.x1-ink.x0)*scale,h=(ink.y1-ink.y0)*scale,gap=668-(box.y+(ink.y1-y)*scale);
+        if(!special&&(w<720||(h<200&&gap>170)))issues.push({page:i+1,type:'figure-small',level:'warn',msg:src,ink});
+      }
     }
   }
   assets.delete(ORIGIN+'/__figure_check.html');

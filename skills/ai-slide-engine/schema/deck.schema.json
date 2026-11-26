@@ -157,7 +157,8 @@
                         "ng",
                         "warn",
                         "blocked",
-                        "code"
+                        "code",
+                        "aws"
                       ]
                     },
                     "args": {

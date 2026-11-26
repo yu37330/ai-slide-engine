@@ -1,18 +1,14 @@
-# Upstream feature parity / 初期段階
+# Upstream feature parity
 
-| 機能 | 状態 | 検証・次の実装 |
+| 機能 | 状態 | 証拠・残り |
 |---|---|---|
-| ストーリー・日本語・図選択・配色・アップデート型 | 継承 | 原典参照・Copilot指示 |
-| jfigの共通部品 | 原典移植 | JSON allowlist経由。AWSアイコンは未移植 |
-| JSON正本・出典ID・SVG | MVP | 基本構造とページ比率、基本座標を検査 |
-| CSSのPetrol/Paper | 原典保管 | 新PPTXテーマは簡易Petrol。全レイアウト/表紙移植は未 |
-| PPTX出力・編集 | MVP | SVG原本埋込・PNG fallback。上流のSVG内部ネイティブDrawingML変換は未接続 |
-| 表・本文・発表者ノート | MVP | レイアウトは簡易版 |
-| SVG Editor・差分保存・履歴・プレゼンビュー | 未 | PowerPoint標準機能で部分代替、JSONへの反映は手動 |
-| slides check・PPTX描画・見切れ/衝突・contact sheet | 部分 | 上流検査コードは参照保存。実描画と全要素衝突は未実装 |
-| テーマ切替・全テンプレート・ギャラリー | 未 | 公開作例は上流URL参照。画像・フォント権利を確認して再構成 |
-| Copilot Chatの個人Skills ZIP | 実装 | ZIP構造とローカル同等テスト、テナント登録は未 |
-| Copilot in PowerPoint | 指示Skill | 別製品の実行環境と管理者設定。登録・編集は未検証 |
-| クレジット | 未確認 | 実契約・利用モード・費用表示を確認。自動課金への切替は禁止 |
-
-次: 1) JSON Schema厳格化・図形交差/全パスの検査・実レンダリング比較 2) 元のPPTX scene/DrawingMLへの変換アダプター 3) テンプレート・テーマ・編集差分同期 4) Copilot実テナント検証。
+| 原典制作ルール・jfig | 移植 | 原典ハッシュ一致。未接続部品は個別に検証 |
+| Petrol/Paper | HTML接続 | 5種類×2テーマの固定HTMLでpixel差0 |
+| 全5テンプレート・表紙/裏表紙/章扉/stage | 固定HTML実装 | 48ページ×2テーマ=96/96ピクセル完全一致。JSONスロット/図解差し替え。任意ページ追加・並び替え未対応 |
+| 原典の描画回帰 | 96/96 | [CI 45887002218](https://github.com/yu37330/ai-slide-engine/actions/runs/45887002218/job/140140082103)、固定カタログの独立再比較を必須化 |
+| AWS公式アイコン | オフライン対応 | [CI 45887094180](https://github.com/yu37330/ai-slide-engine/actions/runs/45887094180/job/140140390630)：公式ZIP 1852点、S3/Bedrock/Lambda、Paper色保持。素材の同梱なし |
+| SVG→PPTX native | 基本検証済み | 旧画像埋込はfallback。Office実描画・全テンプレートのPPTX比較は未検証 |
+| DOM/SVG QA | 実装 | 元の検査と範囲外geometry。原典作例にも警告はあり得る |
+| フォント | 原典ハッシュ検査 | 素材は配布せず利用者が明示供給。代替時のpixel同一性は未確認 |
+| SVG Editor・差分同期・履歴 | 未 | PPT編集からJSONへの自動反映は未実装 |
+| Copilot Skills | ZIP実装 | テナント実行・契約/クレジットは未確認 |

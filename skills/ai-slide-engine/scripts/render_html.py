@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 from build import validate, need
 from figure_palette import adaptive_svg
+from aws_assets import configure
 
 ROOT = Path(__file__).resolve().parents[1]
 def esc(s):
@@ -70,5 +71,7 @@ if __name__=="__main__":
     p.add_argument("deck",type=Path);p.add_argument("output",type=Path)
     p.add_argument("--theme",choices=["petrol","paper"],default="petrol")
     p.add_argument("--fonts",type=Path)
+    p.add_argument("--aws-cache",type=Path)
     a=p.parse_args()
+    if a.aws_cache: configure(a.aws_cache)
     print(json.dumps(render(a.deck,a.output,a.theme,a.fonts),ensure_ascii=False,indent=2))
