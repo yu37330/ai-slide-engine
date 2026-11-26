@@ -35,3 +35,6 @@ description: 技術説明・業務報告の資料を設計JSONと精密なSVG図
 4. エラーがあればJSONから直して新規フォルダに再生成。警告は目視して理由を記録。原典フォント未提供時は同一描画と主張しない。Office実描画・事実確認・テナント・課金は別に確認する。
 5. 生成物をPowerPointで開き、図・文字・座標を維持してCopilotで仕上げる。変更はJSONに還元。
 6. Node/ブラウザ等が使えない場合、HTML・SVGを返し、ネイティブ変換未実行と明記。明示的な互換経路として旧 `python scripts/build.py build deck.json output-fallback` も使用可能だが、図形をSVG画像として保持する劣化経路であり、同等品質と報告しない。
+
+## PPTX再描画の独立レビュー
+許可済み環境にLibreOffice、Poppler、numpy、Pillowが既にある場合は `python scripts/pptx_render_review.py output/deck-native.pptx output/pages output/pptx-review` でPPTXをPDF経由で1280×720へ再描画し、HTMLとの差、OOXMLの整合性、図形/文字/表/画像の保持を測定する。結果はreview-pptx.json。LibreOfficeでの測定をMicrosoft PowerPoint実機の合格と見なさない。差分は目視確認し、問題はJSONから修正する。未導入の場合は追加インストールせず未実査と記録する。
