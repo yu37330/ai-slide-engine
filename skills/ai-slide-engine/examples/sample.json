@@ -1,0 +1,317 @@
+{
+  "version": 1,
+  "title": "生産計画の再計算",
+  "author": "Sample",
+  "sources": [],
+  "slides": [
+    {
+      "id": "s01",
+      "kind": "cover",
+      "title": "生産計画の再計算",
+      "lead": "架空の工程を用いた仕組みの説明",
+      "claim_status": "none",
+      "source_ids": [],
+      "notes": "合成データのみ"
+    },
+    {
+      "id": "s02",
+      "kind": "figure",
+      "title": "需要変動を起点に計画を作る",
+      "lead": "受注から実行可能な計画までの流れ",
+      "claim_status": "illustrative",
+      "source_ids": [],
+      "notes": "架空の構成例。実績値ではありません。",
+      "figure": {
+        "width": 1160,
+        "height": 400,
+        "alt": "受注から実行可能な計画までの流れ",
+        "operations": [
+          {
+            "component": "frame",
+            "args": [
+              20,
+              30,
+              1120,
+              340,
+              "計画システム"
+            ],
+            "kwargs": {
+              "dash": true
+            }
+          },
+          {
+            "component": "icon",
+            "args": [
+              140,
+              125,
+              "user",
+              "計画担当"
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "box",
+            "args": [
+              300,
+              145,
+              220,
+              100,
+              "受注・在庫",
+              "入力データ"
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "box",
+            "args": [
+              590,
+              145,
+              220,
+              100,
+              "数理最適化",
+              "設備能力"
+            ],
+            "kwargs": {
+              "tone": "a"
+            }
+          },
+          {
+            "component": "box",
+            "args": [
+              880,
+              145,
+              220,
+              100,
+              "生産計画",
+              "計算結果"
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "A",
+            "args": [
+              205,
+              195,
+              292,
+              195
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "A",
+            "args": [
+              528,
+              195,
+              582,
+              195
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "A",
+            "args": [
+              818,
+              195,
+              872,
+              195
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "bubble",
+            "args": [
+              85,
+              70,
+              210,
+              "納期を守れる？",
+              [
+                145,
+                125
+              ]
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "T",
+            "args": [
+              580,
+              340,
+              "制約条件と目的関数から計画を計算",
+              22,
+              "middle"
+            ],
+            "kwargs": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "s03",
+      "kind": "figure",
+      "title": "実行前にリスクを検査する",
+      "lead": "予定と変動シナリオを比較して判断する",
+      "claim_status": "illustrative",
+      "source_ids": [],
+      "notes": "架空の構成例。実績値ではありません。",
+      "figure": {
+        "width": 1160,
+        "height": 400,
+        "alt": "予定と変動シナリオを比較して判断する",
+        "operations": [
+          {
+            "component": "box",
+            "args": [
+              55,
+              135,
+              280,
+              120,
+              "計画",
+              "開始・終了時刻"
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "box",
+            "args": [
+              440,
+              135,
+              280,
+              120,
+              "リスク評価",
+              "変動シナリオ"
+            ],
+            "kwargs": {
+              "tone": "a"
+            }
+          },
+          {
+            "component": "box",
+            "args": [
+              825,
+              135,
+              280,
+              120,
+              "判断",
+              "再計算・採用"
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "A",
+            "args": [
+              345,
+              195,
+              430,
+              195
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "A",
+            "args": [
+              730,
+              195,
+              815,
+              195
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "T",
+            "args": [
+              580,
+              320,
+              "評価結果は計画担当者が確認",
+              23,
+              "middle"
+            ],
+            "kwargs": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "s04",
+      "kind": "figure",
+      "title": "実績との差を次の計画に反映する",
+      "lead": "計画・実績・修正理由を記録して改善する",
+      "claim_status": "illustrative",
+      "source_ids": [],
+      "notes": "架空の構成例。実績値ではありません。",
+      "figure": {
+        "width": 1160,
+        "height": 400,
+        "alt": "計画・実績・修正理由を記録して改善する",
+        "operations": [
+          {
+            "component": "card",
+            "args": [
+              40,
+              100,
+              330,
+              200,
+              "計画",
+              "予定を記録"
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "card",
+            "args": [
+              415,
+              100,
+              330,
+              200,
+              "実績",
+              "差分を確認"
+            ],
+            "kwargs": {
+              "tone": "a"
+            }
+          },
+          {
+            "component": "card",
+            "args": [
+              790,
+              100,
+              330,
+              200,
+              "改善",
+              "制約を見直す"
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "A",
+            "args": [
+              375,
+              200,
+              410,
+              200
+            ],
+            "kwargs": {}
+          },
+          {
+            "component": "A",
+            "args": [
+              750,
+              200,
+              785,
+              200
+            ],
+            "kwargs": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "s05",
+      "kind": "closing",
+      "title": "ありがとうございました",
+      "lead": "設計JSONとSVGを正本として維持する",
+      "claim_status": "none",
+      "source_ids": [],
+      "notes": ""
+    }
+  ]
+}

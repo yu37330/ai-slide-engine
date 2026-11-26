@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Slide deck v1",
+  "type": "object",
+  "required": [
+    "version",
+    "title",
+    "author",
+    "sources",
+    "slides"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "locator"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "locator": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "slides": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "lead",
+          "claim_status",
+          "source_ids",
+          "notes"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$"
+          },
+          "kind": {
+            "enum": [
+              "cover",
+              "section",
+              "figure",
+              "text",
+              "table",
+              "closing"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lead": {
+            "type": "string"
+          },
+          "claim_status": {
+            "enum": [
+              "factual",
+              "illustrative",
+              "none"
+            ]
+          },
+          "source_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$"
+            },
+            "uniqueItems": true
+          },
+          "notes": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "figure": {
+            "type": "object",
+            "required": [
+              "width",
+              "height",
+              "alt",
+              "operations"
+            ],
+            "properties": {
+              "width": {
+                "const": 1160
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 340,
+                "maximum": 420
+              },
+              "alt": {
+                "type": "string",
+                "minLength": 1
+              },
+              "operations": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 300,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "component",
+                    "args"
+                  ],
+                  "properties": {
+                    "component": {
+                      "enum": [
+                        "T",
+                        "R",
+                        "C",
+                        "L",
+                        "A",
+                        "icon",
+                        "bubble",
+                        "think",
+                        "box",
+                        "frame",
+                        "card",
+                        "tag",
+                        "head",
+                        "num",
+                        "ok",
+                        "ng",
+                        "warn",
+                        "blocked",
+                        "code"
+                      ]
+                    },
+                    "args": {
+                      "type": "array"
+                    },
+                    "kwargs": {
+                      "type": "object"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "table": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 7,
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 5,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "figure"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "figure"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "table"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "body"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "text"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "body"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "figure"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "table"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "table"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "table"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "figure"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "body"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "cover",
+                    "section",
+                    "closing"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "figure"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "table"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "body"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "claim_status": {
+                  "const": "factual"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "source_ids": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}
