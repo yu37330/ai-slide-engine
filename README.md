@@ -5,9 +5,9 @@ Microsoft 365 Copilot Chatでストーリー・JSON・SVGを作り、同じSkill
 Jinno Slide KitのMIT作図部品・制作ルール・描画/検査処理の参照実装を継承。Marpは実行要件から除外し、JSONを正本にする。
 
 ## Copilot 365
-1. [Copilot登録用ZIP](https://github.com/yu37330/ai-slide-engine/raw/main/releases/ai-slide-engine.zip) を直接取得（または `python scripts/package_skill.py`）。Actions Artifact容量に依存しない。ZIPの中身とソースの一致をCIで確認する。
+1. [Copilot Chat登録専用ZIP](https://github.com/yu37330/ai-slide-engine/raw/main/releases/ai-slide-engine-copilot.zip) を直接取得（または `python scripts/package_copilot_skill.py`）。公開対応拡張子だけで構成し、CSSとテンプレートの中身は復元時に検査する。通常の開発用ZIPは `releases/ai-slide-engine.zip`。詳細は [登録・初期診断](docs/copilot-upload.md)。
 2. Microsoft 365 Copilot Chat（Premium・管理者設定による）の Agents > More agents > Upload skill から中身のZIPを登録。SKILL.mdがZIP直下にある。
-3. Skillsを明示選択し「サンプルJSONからSVGとPPTXを生成して検査して」。スクリプトが実行できない、従量課金になる場合は自動で別モードへ切り替えない。
+3. Skillsを明示選択し「SKILL.mdに従って初回復元と実行環境診断を行い、サンプルJSONからSVGとPPTXを生成して検査して」。スクリプトが実行できない、従量課金になる場合は自動で別モードへ切り替えない。
 4. PPTXを開き、PowerPoint Copilotに `skills/ai-slide-finisher/SKILL.md` を別途登録できる環境では明示選択。図解を勝手に置き換えず仕上げる。
 5. 変更点はJSONに反映し再生成。正本、SVG、PPTX、レビューを同時に保管。会社データは会社の許可された環境でのみ扱う。
 

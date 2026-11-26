@@ -8,7 +8,7 @@ import {chromium} from 'playwright-core';
 import {PNG} from 'pngjs';
 import {original,NAMES,THEMES,shell} from '../scripts/compile_templates.mjs';
 const up=path.resolve(process.argv[2]),catalog=path.resolve(process.argv[3]);
-const script=path.resolve('skills/ai-slide-engine/scripts/template_render.py'),fontDir=path.join(up,'marp/themes/assets');
+const script=path.resolve(process.env.SKILL_ROOT||'skills/ai-slide-engine','scripts/template_render.py'),fontDir=path.join(up,'marp/themes/assets');
 const HOST='https://pixel-test.invalid/';
 const mime={'.html':'text/html','.css':'text/css','.svg':'image/svg+xml','.woff2':'font/woff2'};
 const PY=process.env.PYTHON||'python';
