@@ -19,5 +19,5 @@ jobs:
       - run: python scripts/package_skill.py
       - run: python skills/ai-slide-engine/scripts/build.py build skills/ai-slide-engine/examples/sample.json output
       - name: Verify checked-in skill ZIP
-        run: cmp dist/ai-slide-engine.zip releases/ai-slide-engine.zip
+        run: python scripts/verify_skill_zip.py dist/ai-slide-engine.zip releases/ai-slide-engine.zip
       # Account artifact storage quota is not required for tests or ZIP distribution.

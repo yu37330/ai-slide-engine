@@ -9,7 +9,7 @@ def package(output):
     output=Path(output)
     output.parent.mkdir(parents=True,exist_ok=True)
     with ZipFile(output,"w",ZIP_STORED) as z:
-        for p in sorted(SKILL.rglob("*")):
+        for p in sorted(SKILL.rglob("*"),key=lambda p: tuple(part.casefold() for part in p.relative_to(SKILL).parts)):
             if p.is_file() and p.suffix in EXT and "__pycache__" not in p.parts:
                 # WindowsとLinuxで同一のUTF-8・LF・固定時刻を使う。署名対象を再現可能にする。
                 info=ZipInfo(p.relative_to(SKILL).as_posix(),(2026,1,1,0,0,0))
