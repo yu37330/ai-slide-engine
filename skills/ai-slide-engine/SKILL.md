@@ -14,6 +14,11 @@ description: 技術説明・業務報告の資料を設計JSONと精密なSVG図
 - 承認済み公式AWSアイコンが利用できない場合はサービス名と一般の箱を使い、公式ロゴを自作しない。代替を報告する。
 - 契約内で許可される通常利用を優先。Cowork、外部API、課金モデル、ネット接続、依存インストールに自動で切り替えない。高度な推論やスクリプトが不可ならJSON案を返して停止し、未実行と明記する。
 
+## 作図・画像の正規入力
+- 原典の20個のFig描画メソッドと `facts` / `steps`、旧marks（mark_actor / mark_label / mark_speech / mark_outline）をJSONから呼ぶ。args/kwargsは原典のシグネチャに従う。一般の曲線や多角形は path (d, fill, stroke, sw) を使う。図の推奨高さ340〜420を維持し、原典の小さい図や特殊図も200〜470で許容する。
+- 写真、スクリーンショット、外部作成した静的SVGは、利用者から利用許可を得たローカルファイルのみ。deck/template JSONのassetsに id/file/sha256/source/rights を記録（rights=owned/licensed/public_domain/generated、自己申告を検証済み権利と混同しない）。`--assets-dir` に許可済みフォルダを指定し、figure.operationsへ component=image, args=[x,y,width,height,asset_id], kwargs={fit:"contain"} を追加。必要な場合だけcover（中央クロップ）。PNG/JPEGの原本を再圧縮しない。外部URL・任意ファイルアクセス・アクティブSVGは禁止。写真や外部図をPaper用に再配色しない。技術図解を生成画像で代替しない。
+- 原典のSVG生成再現性と、AIが新しい題材の図を適切に設計する能力は別。生成物のブラウザQA・目視比較・Office実描画を実施し、未確認をPASSにしない。
+
 ## 原典テンプレート優先
 5種類の原典（lightning/release/talk/update/webinar）×Petrol/Paperの固定HTMLカタログ `templates/catalog.zip` を使う。本番でMarpを動かさない。ユーザーの目的に合う雛形を選ぶ。
 - `python scripts/template_render.py list` / `python scripts/template_render.py inspect update petrol` でスライドの構造・スロットID・SVG寸法を確認。

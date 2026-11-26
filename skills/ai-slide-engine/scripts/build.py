@@ -11,11 +11,15 @@ import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from jfig import Fig, tw
+from jfig import Fig, tw, facts, steps
+from functools import partial
+import marks
+from visual_assets import load_assets, image_fragment, free_path
 from aws_assets import configure, require_icon, safe_svg
 
 OPS = {"T","R","C","L","A","icon","bubble","think","box","frame","card","tag",
-       "head","num","ok","ng","warn","blocked","code","aws"}
+       "head","num","ok","ng","warn","blocked","code","aws","facts","steps",
+       "mark_actor","mark_label","mark_speech","mark_outline","path","image"}
 BODY = {"figure","text","table"}
 KINDS = BODY | {"cover","section","closing"}
 ID = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -49,10 +53,11 @@ def argsafe(v):
     else:
         need(v is None or isinstance(v,bool),"invalid argument")
 
-def svg_check(svg,w,h):
+def svg_check(svg,w,h,assets=None):
     # 外部参照、コードの実行、基本図形の範囲外を拒否する。
     need("<!DOCTYPE" not in svg.upper() and "<!ENTITY" not in svg.upper(),"unsafe XML")
     root=ET.fromstring(svg)
+    approved_uris={a["uri"] for a in (assets or {}).values()}
     allowed={"svg","title","rect","text","tspan","circle","ellipse","g","path",
              "defs","marker","line","polyline","polygon"}
     def walk(e, transformed=False, definition=False):
@@ -63,10 +68,17 @@ def svg_check(svg,w,h):
             x,y,a,b=(float(e.get(k,"0")) for k in ("x","y","width","height"))
             need(x>=0 and y>=0 and a>0 and b>0 and x+a<=w+.01 and y+b<=h+.01,"AWS icon outside canvas")
             return
+        if tag=="image" and e.tag==NS+"image":
+            need(set(e.attrib)=={"x","y","width","height","preserveAspectRatio","data-fixed-color","href"} and e.get("href") in approved_uris,"unapproved image reference")
+            x,y,a,b=(float(e.get(k)) for k in ("x","y","width","height"))
+            need(x>=0 and y>=0 and a>0 and b>0 and x+a<=w+.01 and y+b<=h+.01,"image outside canvas")
+            need(e.get("preserveAspectRatio") in ("xMidYMid meet","xMidYMid slice") and not list(e),"invalid image")
+            return
         need(e.tag.startswith(NS) and tag in allowed,"unsupported SVG element")
         for k,v in e.attrib.items():
             need(not k.lower().startswith("on") and "href" not in k.lower(),"unsafe attribute")
-            need("url(" not in v or re.fullmatch(r"url\(#[a-zA-Z0-9_-]+\)",v),"external reference")
+            need(k.rsplit("}",1)[-1].lower() not in ("style","base","src"),"unsafe generated SVG attribute")
+            need("url" not in v.lower() or re.fullmatch(r"url\(#[a-zA-Z0-9_-]+\)",v),"external reference")
         transformed=transformed or "transform" in e.attrib
         definition=definition or tag in ("defs","marker")
         def n(k,d=0): return float(e.get(k,d))
@@ -91,11 +103,11 @@ def svg_check(svg,w,h):
         for child in e: walk(child,transformed,definition)
     walk(root)
 
-def figure_svg(fig, canvas=None):
+def figure_svg(fig, canvas=None, assets=None):
     fields(fig,["width","height","alt","operations"])
     need(type(fig["width"]) is int and type(fig["height"]) is int,"integer figure dimensions required")
     if canvas is None:
-        need(fig["width"]==1160 and 340<=fig["height"]<=420,"figure canvas must be 1160 x 340..420")
+        need(fig["width"]==1160 and 200<=fig["height"]<=470,"figure canvas must be 1160 x 200..470")
     else:
         need((fig["width"],fig["height"])==tuple(canvas) and all(0<x<=2400 for x in canvas),"template canvas dimensions must match original")
     f=Fig(fig["width"],fig["height"],title=text(fig["alt"],True))
@@ -107,25 +119,32 @@ def figure_svg(fig, canvas=None):
         a,k=op["args"],op.get("kwargs",{})
         need(isinstance(a,list) and isinstance(k,dict),"invalid args")
         for v in [*a,*k.values()]: argsafe(v)
-        fn=getattr(f,name)
+        def mark_outline(x,y,w,h,tx,ty,radius=8,fill="#f4f5f7",stroke="#a1a8ae"):
+            return free_path(marks.bubble_outline(x,y,w,h,tx,ty,radius),fill,stroke,1.5)
+        composites={"facts":partial(facts,f),"steps":partial(steps,f)}
+        fragments={"mark_actor":marks.actor,"mark_label":marks.label,"mark_speech":marks.speech,
+                   "mark_outline":mark_outline,"path":free_path,"image":partial(image_fragment,assets or {})}
+        fn=composites.get(name) or fragments.get(name) or getattr(f,name)
         p=inspect.signature(fn).bind(*a,**k).arguments
         if name=="aws": require_icon(p["name"])
         if p.get("aws"): require_icon(p["aws"])
-        for key in ("c","tc","fill","stroke"):
+        for key in ("c","tc","fill","stroke","color"):
             if key in p and p[key] is not None:
                 need(isinstance(p[key],str) and COLOR.fullmatch(p[key]),"invalid color")
         for key in ("z","sz","bz"):
             if p.get(key) is not None:
                 need(type(p[key]) in (int,float) and p[key]>=16,"font size minimum 16 px")
-        fn(*a,**k)
+        fragment=fn(*a,**k)
+        if name in fragments: f.parts.append(fragment)
     result=f.svg()
-    if "data-aws-icon=" in result:
+    if "xlink:" in result and "xmlns:xlink=" not in result:
         result=result.replace('xmlns="http://www.w3.org/2000/svg"','xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"',1)
-    svg_check(result,fig["width"],fig["height"])
+    svg_check(result,fig["width"],fig["height"],assets)
     return result
 
-def validate(deck):
-    fields(deck,["version","title","author","sources","slides"])
+def validate(deck, assets_dir=None):
+    fields(deck,["version","title","author","sources","slides"],["assets"])
+    assets=load_assets(deck.get("assets",[]),assets_dir)
     need(type(deck["version"]) is int and deck["version"]==1,"version must be 1")
     text(deck["title"],True);text(deck["author"],True)
     need(isinstance(deck["sources"],list),"sources required")
@@ -154,7 +173,7 @@ def validate(deck):
         payload=set(s)&{"figure","table","body"}
         if kind=="figure":
             need(payload=={"figure"},"figure slide requires figure only")
-            svgs[sid]=figure_svg(s["figure"]);figures+=1
+            svgs[sid]=figure_svg(s["figure"],assets=assets);figures+=1
         elif kind=="table":
             need(payload=={"table"},"table slide requires table only")
             rows=s["table"]
@@ -240,8 +259,8 @@ def pptx_build(deck,out,svgs):
         slide.notes_slide.notes_text_frame.text=s["notes"]+"\n"+"\n".join(sources[x]["label"]+": "+sources[x]["locator"] for x in s["source_ids"])
     p.save(out/"deck.pptx")
 
-def build(deck_path,out):
-    deck=json.loads(deck_path.read_text(encoding="utf-8"));svgs,counts=validate(deck)
+def build(deck_path,out,assets_dir=None):
+    deck=json.loads(deck_path.read_text(encoding="utf-8"));svgs,counts=validate(deck,assets_dir)
     need(not out.exists() or (out.is_dir() and not any(out.iterdir())),"output must be new or empty")
     out.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(dir=out.parent,prefix=".slide-build-") as d:
@@ -273,11 +292,13 @@ def main():
     p=argparse.ArgumentParser();sub=p.add_subparsers(dest="command",required=True)
     v=sub.add_parser("validate");v.add_argument("deck",type=Path)
     b=sub.add_parser("build");b.add_argument("deck",type=Path);b.add_argument("output",type=Path)
-    for parser in (v,b): parser.add_argument("--aws-cache",type=Path)
+    for parser in (v,b):
+        parser.add_argument("--aws-cache",type=Path)
+        parser.add_argument("--assets-dir",type=Path)
     a=p.parse_args()
     try:
         if a.aws_cache: configure(a.aws_cache)
-        result=validate(json.loads(a.deck.read_text(encoding="utf-8")))[1] if a.command=="validate" else build(a.deck,a.output)
+        result=validate(json.loads(a.deck.read_text(encoding="utf-8")),a.assets_dir)[1] if a.command=="validate" else build(a.deck,a.output,a.assets_dir)
         print(json.dumps(result,ensure_ascii=False,indent=2))
     except Exception as exc: p.exit(1,f"ERROR: {exc}\n")
 if __name__=="__main__": main()
