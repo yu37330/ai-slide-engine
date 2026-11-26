@@ -37,7 +37,7 @@ for(const name of NAMES)for(const theme of THEMES){
     const review=path.join(work,'render-review');
     execFileSync(py,[path.join(root,'scripts/pptx_render_review.py'),path.join(cand,'deck-native.pptx'),path.join(cand,'pages'),review,'--baseline',baseline],{stdio:'pipe',timeout:300000});
     const data=JSON.parse(await fs.readFile(path.join(review,'review-pptx.json'),'utf8'));
-    r.pages=data.pages.map(p=>({page:p.page,html_candidate:p.html_candidate,html_baseline:p.html_baseline,baseline_candidate:p.baseline_candidate,native_equal:p.native_equal}));
+    r.pages=data.pages.map(p=>({page:p.page,html_candidate:p.html_candidate,html_baseline:p.html_baseline,baseline_candidate:p.baseline_candidate,native_equal:p.native_equal,geometry_diff:p.geometry_diff}));
     const s=r.pages;
     console.log('PPTX_VARIANT',key,JSON.stringify({pages:s.length,exact:s.filter(x=>x.baseline_candidate.different===0).length,mean_relative_mae:s.reduce((n,x)=>n+x.baseline_candidate.mae,0)/s.length,mean_html_mae:s.reduce((n,x)=>n+x.html_candidate.mae,0)/s.length,mean_original_html_mae:s.reduce((n,x)=>n+x.html_baseline.mae,0)/s.length,native_equal:s.filter(x=>Object.values(x.native_equal).every(Boolean)).length,warnings:qa.warnings}));
   }catch(e){r.error=String(e.stderr||e.message||e).slice(0,5000);console.error('PPTX_VARIANT_ERROR',key,r.error);}
@@ -60,9 +60,10 @@ const summary={variants:results.length,pages:pages.length,blocked:blocked.map(r=
   html_candidate_ssim8:avgSsim('html_candidate'),html_baseline_ssim8:avgSsim('html_baseline'),
   exact_html_pages:pages.filter(p=>p.html_candidate.different===0).length,
   native_geometry_equal_pages:pages.filter(p=>p.native_equal.geometry).length,
-  regressions:regressions.map(p=>({variant:p.variant,page:p.page,relative:p.baseline_candidate,html_candidate:p.html_candidate,html_baseline:p.html_baseline,native_equal:p.native_equal})),
+  regressions:regressions.map(p=>({variant:p.variant,page:p.page,relative:p.baseline_candidate,html_candidate:p.html_candidate,html_baseline:p.html_baseline,native_equal:p.native_equal,geometry_diff:p.geometry_diff})),
   renderer:'LibreOffice/Poppler, not Microsoft PowerPoint'};
 await fs.writeFile(path.join(out,'summary.json'),JSON.stringify({summary,results},null,2));
 console.log('PPTX_AUDIT_SUMMARY',JSON.stringify({...summary,regressions:summary.regressions.length}));
 for(const r of summary.regressions)console.error('PPTX_REGRESSION',JSON.stringify(r));
+for(const p of pages.filter(p=>p.geometry_diff))console.log('PPTX_GEOMETRY_DIFF',JSON.stringify({variant:p.variant,page:p.page,...p.geometry_diff}));
 if(blocked.length||pages.length!==96||regressions.length)process.exitCode=1;

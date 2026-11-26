@@ -63,7 +63,8 @@ def inspect_pptx(path):
             require(counts["shapes"]+counts["tables"]>0 or counts["images"]==0,"image-only slide: "+name)
             # XML bytesではなく各図形の計算済み幾何を比較できるようにする。
             geometry=[]
-            for e in tree.iter(q(A,"xfrm")):
+            for e in tree.iter():
+                if e.tag not in (q(A,"xfrm"),q(P,"xfrm")):continue
                 geometry.append({"attrs":dict(e.attrib),"children":[(c.tag.split("}")[-1],dict(c.attrib)) for c in e]})
             rows.append({**counts,"text":text_normalized(text),"geometry":geometry})
         return {"slides":len(rows),"size":dict(size.attrib),"pages":rows}
@@ -118,6 +119,9 @@ def review(pptx,html_pages,output,baseline=None):
             row["baseline_candidate"]=image_metrics(base_images[i],png)
             t,b=target["pages"][i],ref["pages"][i]
             row["native_equal"]={k:t[k]==b[k] for k in ("shapes","text_runs","tables","images","groups","text","geometry")}
+            if not row["native_equal"]["geometry"]:
+                first=next((j for j,(a,b0) in enumerate(zip(t["geometry"],b["geometry"])) if a!=b0),min(len(t["geometry"]),len(b["geometry"])))
+                row["geometry_diff"]={"index":first,"candidate":t["geometry"][first:first+1],"baseline":b["geometry"][first:first+1]}
         result["pages"].append(row)
     (output/"review-pptx.json").write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding="utf-8")
     return result
