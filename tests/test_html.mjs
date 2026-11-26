@@ -26,7 +26,8 @@ test('original CSS + native editable output (Petrol and Paper)',async()=>{
       const z=await JSZip.loadAsync(await fs.readFile(path.join(out,'deck-native.pptx')));
       const xml=await z.file('ppt/slides/slide2.xml').async('string');
       assert.ok((xml.match(/<p:sp[\s>]/g)||[]).length>5,'individual native shapes');
-      assert.ok(xml.includes('数理最適化'),'figure text is native');
+      const nativeTexts=[...xml.matchAll(/<p:sp(?:\s[^>]*)?>[\s\S]*?<\/p:sp>/g)].map(m=>[...m[0].matchAll(/<a:t(?:\s[^>]*)?>([\s\S]*?)<\/a:t>/g)].map(t=>t[1]).join(''));
+      assert.ok(nativeTexts.some(t=>t.includes('数理最適化')), 'figure text must be native within one shape; actual '+JSON.stringify(nativeTexts));
       assert.ok((await fs.stat(path.join(out,'pages/002.png'))).size>0);
       console.log(theme,JSON.stringify(report.stats),JSON.stringify(report.issues.map(x=>x.type)));
     }
