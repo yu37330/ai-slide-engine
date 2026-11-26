@@ -55,7 +55,8 @@ export async function compile(up,output){
           const walker=doc.createTreeWalker(sec,NodeFilter.SHOW_TEXT);
           const ids=[];
           for(let n;(n=walker.nextNode());){
-            if(!n.nodeValue.trim()||n.parentElement.closest('svg,style,script'))continue;
+            if(!n.nodeValue.trim()||n.parentElement.closest('style,script'))continue;
+            const innerSvg=n.parentElement.closest('svg');if(innerSvg&&sec.contains(innerSvg))continue;
             const k='S'+String(++next).padStart(5,'0');
             if(raw.includes('__JINNO_'+k+'__'))throw Error('slot marker collision');
             const el=n.parentElement,role=el.closest('h1')?'title':el.closest('.lead')?'lead':el.closest('.kicker')?'kicker':el.closest('.sub')?'subtitle':el.closest('.who')?'author':'body';

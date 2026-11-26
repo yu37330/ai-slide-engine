@@ -21,9 +21,61 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: python scripts/package_skill.py
       - run: python skills/ai-slide-engine/scripts/build.py build skills/ai-slide-engine/examples/sample.json output
-      - name: Verify checked-in skill ZIP
+      - name: Verify checked-in skill ZIP (bootstrap only until catalog is committed)
+        if: ${{ hashFiles('skills/ai-slide-engine/templates/catalog.zip') != '' }}
         run: python scripts/verify_skill_zip.py dist/ai-slide-engine.zip releases/ai-slide-engine.zip
       - run: npm install --ignore-scripts --omit=dev
       - run: npx playwright-core install chromium
       - name: HTML browser and native DrawingML regression
         run: npm run test:html
+
+  template-parity:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: yuu551/jinno-slide-kit
+          ref: b5814e92b1c4bcc6d78f1c357ebe05de9030f5e2
+          path: .parity-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts
+      - run: npx playwright-core install chromium
+      - run: ln -s "$GITHUB_WORKSPACE/node_modules" .parity-upstream/node_modules
+      - name: Compile original templates once if catalog does not exist
+        run: |
+          if [ ! -f skills/ai-slide-engine/templates/catalog.zip ]; then
+            node scripts/compile_templates.mjs .parity-upstream "$RUNNER_TEMP/catalog.zip"
+          fi
+      - name: Independent pixel comparison, all templates and both themes
+        run: |
+          catalog=skills/ai-slide-engine/templates/catalog.zip
+          if [ ! -f "$catalog" ]; then catalog="$RUNNER_TEMP/catalog.zip"; fi
+          node tests/pixel_parity.mjs .parity-upstream "$catalog"
+      - name: Export initial catalog without fonts
+        if: ${{ hashFiles('skills/ai-slide-engine/templates/catalog.zip') == '' }}
+        run: node scripts/emit_catalog.mjs "$RUNNER_TEMP/catalog.zip"
+  aws-official:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download pinned official AWS icon package for ephemeral testing only
+        run: |
+          url='https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip'
+          curl --fail --location --retry 2 --max-time 90 "$url" -o "$RUNNER_TEMP/aws.zip"
+          sha=$(sha256sum "$RUNNER_TEMP/aws.zip" | cut -d ' ' -f1)
+          python skills/ai-slide-engine/scripts/aws_assets.py import "$RUNNER_TEMP/aws.zip" "$RUNNER_TEMP/aws-cache" --source "$url" --sha256 "$sha" > "$RUNNER_TEMP/aws-import.json"
+          echo "OFFICIAL_AWS_CACHE=$RUNNER_TEMP/aws-cache" >> "$GITHUB_ENV"
+      - name: Actual AWS S3, Lambda and Bedrock icons
+        run: python -m unittest discover -s tests -p test_aws_official.py -v
