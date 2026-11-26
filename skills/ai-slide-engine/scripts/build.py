@@ -91,10 +91,13 @@ def svg_check(svg,w,h):
         for child in e: walk(child,transformed,definition)
     walk(root)
 
-def figure_svg(fig):
+def figure_svg(fig, canvas=None):
     fields(fig,["width","height","alt","operations"])
-    need(type(fig["width"]) is int and fig["width"]==1160 and type(fig["height"]) is int
-         and 340<=fig["height"]<=420,"figure canvas must be 1160 x 340..420")
+    need(type(fig["width"]) is int and type(fig["height"]) is int,"integer figure dimensions required")
+    if canvas is None:
+        need(fig["width"]==1160 and 340<=fig["height"]<=420,"figure canvas must be 1160 x 340..420")
+    else:
+        need((fig["width"],fig["height"])==tuple(canvas) and all(0<x<=2400 for x in canvas),"template canvas dimensions must match original")
     f=Fig(fig["width"],fig["height"],title=text(fig["alt"],True))
     need(isinstance(fig["operations"],list) and 0<len(fig["operations"])<=300,"operations required")
     for op in fig["operations"]:

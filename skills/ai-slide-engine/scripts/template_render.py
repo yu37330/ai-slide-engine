@@ -30,6 +30,19 @@ def variant(z,name,theme):
     idx=data(z,key+"/index.json")
     need(idx["key"]==key,"catalog mismatch")
     return key,idx
+def asset_canvas(raw):
+    original=ET.fromstring(raw)
+    vb=[float(v) for v in re.split(r"[\s,]+",original.get("viewBox","").strip())]
+    need(len(vb)==4 and vb[0]==0 and vb[1]==0 and all(x.is_integer() and 0<x<=2400 for x in vb[2:]),"template asset has unsupported custom canvas")
+    return tuple(int(x) for x in vb[2:])
+def inspect_template(z,name,theme):
+    key,idx=variant(z,name,theme)
+    result=dict(idx)
+    result["canvases"]={}
+    for asset in idx["assets"]:
+        try: result["canvases"][asset]=list(asset_canvas(read(z,key+"/"+asset)))
+        except ValueError: result["canvases"][asset]=None
+    return result
 def spec(z,name,theme):
     key,idx=variant(z,name,theme)
     return {"version":1,"template":name,"theme":theme,"title":idx["title"],"author":idx["author"],
@@ -91,9 +104,7 @@ def render(catalog,config,out,fonts=None):
             need(re.fullmatch(r"figs/[A-Za-z0-9_-]+\.svg",name),"unsafe template asset")
             raw=read(z,key+"/"+name)
             if name in overrides:
-                raw=figure_svg(overrides[name]).encode("utf-8")
-                original=ET.fromstring(read(z,key+"/"+name));new=ET.fromstring(raw)
-                need(original.get("viewBox")==new.get("viewBox"),"figure replacement must retain original viewBox")
+                raw=figure_svg(overrides[name],canvas=asset_canvas(raw)).encode("utf-8")
             p=out/name;p.parent.mkdir(parents=True,exist_ok=True)
             if name=="figs/cover-art.svg" and "cover_art" in config:
                 need(name not in overrides,"cover art and figure override conflict")
@@ -118,12 +129,14 @@ def render(catalog,config,out,fonts=None):
 def main():
     p=argparse.ArgumentParser();p.add_argument("--catalog",type=Path,default=CATALOG);sub=p.add_subparsers(dest="command",required=True)
     sub.add_parser("list")
+    i=sub.add_parser("inspect");i.add_argument("template",choices=NAMES);i.add_argument("theme",choices=THEMES)
     s=sub.add_parser("spec");s.add_argument("template",choices=NAMES);s.add_argument("theme",choices=THEMES);s.add_argument("output",type=Path)
     b=sub.add_parser("render");b.add_argument("spec",type=Path);b.add_argument("output",type=Path);b.add_argument("--fonts",type=Path);b.add_argument("--aws-cache",type=Path)
     a=p.parse_args()
-    if a.command in ("list","spec"):
+    if a.command in ("list","spec","inspect"):
         with zipfile.ZipFile(a.catalog) as z:
             if a.command=="list":print(json.dumps(data(z,"catalog.json")["variants"],ensure_ascii=False,indent=2))
+            elif a.command=="inspect":print(json.dumps(inspect_template(z,a.template,a.theme),ensure_ascii=False,indent=2))
             else:a.output.write_text(json.dumps(spec(z,a.template,a.theme),ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     else:
         if a.aws_cache:configure(a.aws_cache)

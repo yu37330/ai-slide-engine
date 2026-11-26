@@ -13,7 +13,13 @@ Jinno Slide KitのMIT作図部品・制作ルール・描画/検査処理の参�
 
 ## HTML正規経路（ローカル検証）
 
-HTML / CSS / SVGをブラウザで描画・検査してから、ネイティブDrawingMLへ変換する経路を追加。旧SVG画像埋め込み経路は互換用として残す。詳細な実行方法・制約は `skills/ai-slide-engine/SKILL.md` を参照。元のMarp出力との完全な同等性とOffice実機は未検証。
+HTML / CSS / SVGをブラウザで描画・検査してから、ネイティブDrawingMLへ変換する経路を追加。旧SVG画像埋め込み経路は互換用として残す。詳細な実行方法・制約は `skills/ai-slide-engine/SKILL.md` を参照。原典5テンプレート×2テーマの固定カタログ（96ページ）は同一フォント・SVG・Chromium・1280×720の比較で全ページpixel差0。新規内容、Office実機、フォント代替は未検証。
+
+## 原典テンプレート・AWS公式アイコン
+
+- [テンプレートの使い方と比較方法](docs/template-parity.md)：`template_render.py list / inspect / spec / render`。5種×2テーマ。表紙・裏表紙・章扉・stageを保持。JSONスロットとSVGを編集する。
+- [AWS公式アイコン](docs/aws-official.md)：公式ZIPをユーザーが取得し、オフラインでSHA256検証・取込み。1,852 SVGの安全検査とS3/Bedrock/Lambdaの実アイコン検証を実施。
+- フォント・公式アイコン集は配布ZIPに同梱しない。
 
 ## ローカル予備経路
 Python 3.10+、python-pptx、InkscapeまたはCairoSVG。依存の導入はローカルで明示的に許可した場合のみ。
