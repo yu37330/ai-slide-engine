@@ -100,7 +100,7 @@ async function checkBundle(page, context, manifest, deck, assets, dir){
   if(manifest.font_mode!=='approved_assets')issues.push({page:0,type:'font-fallback-unverified',level:'warn',msg:'Original font files were not supplied. Font/render parity unverified.'});
   // 発表者・原典由来の配色/文言検査を残し、未実査を合格扱いしない。
   await fs.mkdir(path.join(dir,'pages'),{recursive:true});
-  for(let i=0;i<actual.length;i++)await page.locator('section[id]').nth(i).screenshot({path:path.join(dir,'pages',String(i+1).padStart(3,'0')+'.png'),animations:'disabled'});
+  for(let i=0;i<actual.length;i++)await page.locator('section[id]').nth(i).screenshot({path:path.join(dir,'pages',String(i+1).padStart(3,'0')+'.png'),animations:'disabled',scale:'css'});
   return {issues,errors:issues.filter(x=>x.level==='error').length,warnings:issues.filter(x=>x.level==='warn').length};
 }
 async function imageBytes(page,it,assets){
@@ -162,7 +162,7 @@ export async function run(dir,{checkOnly=false}={}){
   const {manifest,deck,assets}=await bundle(dir);
   const browser=await browserLaunch();
   try{
-    const context=await browser.newContext({viewport:{width:1280,height:720},deviceScaleFactor:1,serviceWorkers:'block',colorScheme:manifest.theme==='paper'?'dark':'light'});
+    const context=await browser.newContext({viewport:{width:1280,height:720},deviceScaleFactor:2,serviceWorkers:'block',colorScheme:'light'});
     await wire(context,assets);
     const page=await context.newPage();
     await page.exposeFunction('pptxReadText',async url=>{
@@ -175,6 +175,9 @@ export async function run(dir,{checkOnly=false}={}){
     const save=()=>fs.writeFile(path.join(dir,'review-html.json'),JSON.stringify(result,null,2)+'\n');
     await save();
     if(report.errors||checkOnly)return result;
+    // 原典と同じ初期スクロール位置で座標を測定し、背景は2倍解像度で取得する。
+    await page.evaluate(()=>{window.scrollTo(0,0);});
+    await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
     // 原典extract.jsを同じHTMLに適用する。参照コード自体は変更しない。
     // 原典の信頼済みローカルコードだけをPlaywrightの評価APIで実行。ページのCSPは緩和しない。
     await page.evaluate(await fs.readFile(path.join(here,'pptx','extract.js'),'utf8'));

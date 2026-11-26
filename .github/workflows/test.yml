@@ -88,3 +88,38 @@ jobs:
       - run: npx playwright-core install chromium
       - name: Both themes, fresh SVG pixel parity
         run: node tests/figure_pixels.mjs "$RUNNER_TEMP/figure-parity"
+  pptx-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: yuu551/jinno-slide-kit
+          ref: b5814e92b1c4bcc6d78f1c357ebe05de9030f5e2
+          path: .parity-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install CI-only renderer and font dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libreoffice-impress poppler-utils fontconfig
+          python -m pip install 'fonttools[woff]' numpy Pillow
+          python scripts/install_parity_fonts.py .parity-upstream/marp/themes/assets "$HOME/.local/share/fonts/slide-parity"
+          fc-cache -f
+          fc-match 'Noto Sans JP'
+          fc-match 'Noto Sans JP:style=Bold'
+          libreoffice --version
+          pdftoppm -v
+      - run: npm install --ignore-scripts
+      - run: npx playwright-core install chromium
+      - run: ln -s "$GITHUB_WORKSPACE/node_modules" .parity-upstream/node_modules
+      - name: Compare original PPTX and HTML PPTX with independent rendering
+        run: node tests/pptx_parity.mjs .parity-upstream "$RUNNER_TEMP/pptx-parity"
