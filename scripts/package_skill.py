@@ -4,7 +4,7 @@ from pathlib import Path
 from zipfile import ZipFile, ZipInfo, ZIP_STORED
 ROOT=Path(__file__).resolve().parents[1]
 SKILL=ROOT/"skills"/"ai-slide-engine"
-EXT={".md",".txt",".json",".py"}
+EXT={".md",".txt",".json",".py",".mjs",".js",".css"}
 def package(output):
     output=Path(output)
     output.parent.mkdir(parents=True,exist_ok=True)
