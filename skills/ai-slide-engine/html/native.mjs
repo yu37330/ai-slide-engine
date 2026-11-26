@@ -72,7 +72,7 @@ async function checkBundle(page, context, manifest, deck, assets, dir){
     const r=await figPage.evaluate(measureSvg),ink=await figPage.evaluate(inkBox);
     issues.push(...svgFindings(r,src,[i+1]));
     const box=await page.locator('section[id]').nth(i).locator('img').evaluate(e=>{const r=e.getBoundingClientRect(),s=e.closest('section').getBoundingClientRect();return {w:r.width,y:r.top-s.top};});
-    if(!ink||ink.x1-ink.x0<1||ink.y1-ink.y0<1)issues.push({page:i+1,type:'figure-empty',level:'error',msg:src});
+    if(!ink||((ink.x1-ink.x0<1)&&(ink.y1-ink.y0<1)))issues.push({page:i+1,type:'figure-empty',level:'error',msg:src});
     else{
       const {width,height}=s.figure;
       if(ink.x0<-1||ink.y0<-1||ink.x1>width+1||ink.y1>height+1)issues.push({page:i+1,type:'svg-geometry-outside',level:'error',msg:src,ink});
@@ -161,7 +161,8 @@ export async function run(dir,{checkOnly=false}={}){
     await save();
     if(report.errors||checkOnly)return result;
     // 原典extract.jsを同じHTMLに適用する。参照コード自体は変更しない。
-    await page.addScriptTag({path:path.join(here,'pptx','extract.js')});
+    // 原典の信頼済みローカルコードだけをPlaywrightの評価APIで実行。ページのCSPは緩和しない。
+    await page.evaluate(await fs.readFile(path.join(here,'pptx','extract.js'),'utf8'));
     const scenes=await page.evaluate(()=>window.__pptxExtract());
     if(scenes.length!==deck.slides.length)throw Error('scene count mismatch');
     for(const sc of scenes)for(const it of walkItems(sc.items)){
