@@ -21,7 +21,7 @@ class OfficialTest(unittest.TestCase):
                 hits=[e for e in jfig._AWS[1] if e["kind"]=="service" and e["key"].endswith("_64") and any(jfig._norm(e["key"])==t for t in terms)]
             self.assertTrue(hits,wanted)
             keys.append(hits[0]["key"])
-        ops=[{"component":"aws","args":[160+i*410,100,key,key.split("_")[1]],"kwargs":{"size":64}} for i,key in enumerate(keys)]
+        ops=[{"component":"aws","args":[160+i*410,100,key,["Amazon S3","Amazon Bedrock","AWS Lambda"][i]],"kwargs":{"size":64}} for i,key in enumerate(keys)]
         ops += [{"component":"A","args":[220,140,480,140]},{"component":"A","args":[630,140,890,140]}]
         svg=figure_svg({"width":1160,"height":400,"alt":"AWS architecture","operations":ops})
         ns="{http://www.w3.org/2000/svg}"
