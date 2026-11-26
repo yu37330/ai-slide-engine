@@ -13,9 +13,9 @@ def esc(s):
     return html.escape(s, quote=True)
 def lines(s):
     return esc(s).replace("\n", "<br>")
-def render(deck_file, output, theme="petrol", fonts=None):
+def render(deck_file, output, theme="petrol", fonts=None, assets_dir=None):
     deck=json.loads(Path(deck_file).read_text(encoding="utf-8"))
-    svgs,counts=validate(deck)
+    svgs,counts=validate(deck,assets_dir)
     need(theme in ("petrol","paper"),"unsupported theme")
     out=Path(output)
     need(not out.exists() or (out.is_dir() and not any(out.iterdir())),"output must be new or empty")
@@ -71,7 +71,8 @@ if __name__=="__main__":
     p.add_argument("deck",type=Path);p.add_argument("output",type=Path)
     p.add_argument("--theme",choices=["petrol","paper"],default="petrol")
     p.add_argument("--fonts",type=Path)
+    p.add_argument("--assets-dir",type=Path)
     p.add_argument("--aws-cache",type=Path)
     a=p.parse_args()
     if a.aws_cache: configure(a.aws_cache)
-    print(json.dumps(render(a.deck,a.output,a.theme,a.fonts),ensure_ascii=False,indent=2))
+    print(json.dumps(render(a.deck,a.output,a.theme,a.fonts,a.assets_dir),ensure_ascii=False,indent=2))
