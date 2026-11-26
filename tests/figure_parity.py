@@ -122,6 +122,11 @@ def run(up,out,cache):
         f=old_class(1160,400,"Legacy "+name);f.parts.append(fn(*args))
         ops=[{"component":name,"args":args}]
         compare(name,f.svg(),figure_svg({"width":1160,"height":400,"alt":"Legacy "+name,"operations":ops}),1160,400,ops)
+    f=old_class(1160,400,"Legacy outline")
+    args=[100,100,220,80,400,220]
+    f.parts.append('<path d="'+orig_marks.bubble_outline(*args)+'" fill="#f4f5f7" stroke="#a1a8ae" stroke-width="1.5"/>')
+    ops=[{"component":"mark_outline","args":args}]
+    compare("mark_outline",f.svg(),figure_svg({"width":1160,"height":400,"alt":"Legacy outline","operations":ops}),1160,400,ops)
     # 表紙5部品。原典を直接呼んで比較。
     cover_ops=[
         {"component":"card","args":[45,80,210,120]},
@@ -134,7 +139,7 @@ def run(up,out,cache):
     orig_cover.save(ref,"Original cover",[getattr(orig_cover,o["component"])(*o["args"]) for o in cover_ops])
     actual=cover_svg({"title":"Original cover","operations":cover_ops},candidate)
     compare("cover",ref.read_bytes(),actual,560,720)
-    expected=PUBLIC|{"facts","steps","mark_actor","mark_label","mark_speech"}
+    expected=PUBLIC|{"facts","steps","mark_actor","mark_label","mark_speech","mark_outline"}
     if not cache:expected.remove("aws")
     assert expected<=covered,sorted(expected-covered)
     (out/"manifest.json").write_text(json.dumps({"cases":cases,"demo_count":len(demos) if cache else 3,"public_operations":sorted(covered),"line_icon_count":len(orig.SHAPES)},indent=2))
