@@ -1,0 +1,5 @@
+# HTML-first migration
+Upstream baseline: [b5814e92](https://github.com/yuu551/jinno-slide-kit/tree/b5814e92b1c4bcc6d78f1c357ebe05de9030f5e2).
+Production path: Copilot Chat creates JSON → jfig generates SVG → render_html.py generates DOM using original CSS → native.mjs runs original deck-check, extract, assemble and ooxml → PowerPoint native shapes. No production Marp import. 
+The original CSS and original QA/extraction/assembly code are preserved verbatim; adapter code handles a restricted offline bundle (no external resource loads). Theme Paper imports Petrol by explicit HTML ordering, original palette helper applies adaptive SVG colors. Fonts are not distributed; supply approved assets locally with --fonts. Missing fonts are explicitly warned. Visual comparison with original Marp, actual Office render, full component/cover/template parity, all official icon handling, Copilot tenant and credits still need validation. See #3.
+The old python-pptx vector-picture exporter is retained only as an explicitly degraded fallback. Warnings and errors in review-html.json are not final quality certification.

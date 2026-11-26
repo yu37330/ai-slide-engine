@@ -8,16 +8,22 @@ permissions:
   contents: read
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - run: python -m pip install -r requirements-local.txt
       - run: python -m unittest discover -s tests -v
       - run: python scripts/package_skill.py
       - run: python skills/ai-slide-engine/scripts/build.py build skills/ai-slide-engine/examples/sample.json output
       - name: Verify checked-in skill ZIP
         run: python scripts/verify_skill_zip.py dist/ai-slide-engine.zip releases/ai-slide-engine.zip
-      # Account artifact storage quota is not required for tests or ZIP distribution.
+      - run: npm install --ignore-scripts --omit=dev
+      - run: npx playwright-core install chromium
+      - name: HTML browser and native DrawingML regression
+        run: npm run test:html

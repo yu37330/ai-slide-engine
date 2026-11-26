@@ -1,0 +1,20 @@
+{
+  "name": "ai-slide-engine",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:html": "node --test tests/test_html.mjs"
+  },
+  "dependencies": {
+    "pptxgenjs": "4.0.1",
+    "jszip": "3.10.1",
+    "playwright-core": "1.56.1"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1",
+    "@marp-team/marp-core": "4.4.0",
+    "markdown-it-container": "4.0.0",
+    "lucide": "1.80.0",
+    "pngjs": "7.0.0"
+  }
+}

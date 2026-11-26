@@ -11,6 +11,10 @@ Jinno Slide KitのMIT作図部品・制作ルール・描画/検査処理の参�
 4. PPTXを開き、PowerPoint Copilotに `skills/ai-slide-finisher/SKILL.md` を別途登録できる環境では明示選択。図解を勝手に置き換えず仕上げる。
 5. 変更点はJSONに反映し再生成。正本、SVG、PPTX、レビューを同時に保管。会社データは会社の許可された環境でのみ扱う。
 
+## HTML正規経路（ローカル検証）
+
+HTML / CSS / SVGをブラウザで描画・検査してから、ネイティブDrawingMLへ変換する経路を追加。旧SVG画像埋め込み経路は互換用として残す。詳細な実行方法・制約は `skills/ai-slide-engine/SKILL.md` を参照。元のMarp出力との完全な同等性とOffice実機は未検証。
+
 ## ローカル予備経路
 Python 3.10+、python-pptx、InkscapeまたはCairoSVG。依存の導入はローカルで明示的に許可した場合のみ。
 ```sh
