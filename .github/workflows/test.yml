@@ -23,12 +23,28 @@ jobs:
       - run: python skills/ai-slide-engine/scripts/build.py build skills/ai-slide-engine/examples/sample.json output
       - name: Verify checked-in skill ZIP
         run: python scripts/verify_skill_zip.py dist/ai-slide-engine.zip releases/ai-slide-engine.zip
+      - name: Generate Copilot Chat upload ZIP
+        run: python scripts/package_copilot_skill.py
+      - name: Verify checked-in Copilot Chat ZIP
+        if: ${{ hashFiles('releases/ai-slide-engine-copilot.zip') != '' }}
+        run: python scripts/verify_skill_zip.py dist/ai-slide-engine-copilot.zip releases/ai-slide-engine-copilot.zip
+      - name: Export initial public package
+        if: ${{ hashFiles('releases/ai-slide-engine-copilot.zip') == '' }}
+        run: python scripts/emit_copilot_package.py dist/ai-slide-engine-copilot.zip
       - run: npm install --ignore-scripts --omit=dev
       - run: npx playwright-core install chromium
       - name: HTML browser and native DrawingML regression
         run: |
           npm run test:html
           node --test tests/test_image_export.mjs
+      - name: Smoke test actual restored upload package
+        run: |
+          python -m zipfile -e dist/ai-slide-engine-copilot.zip "$RUNNER_TEMP/upload"
+          python "$RUNNER_TEMP/upload/scripts/bootstrap_copilot.py" "$RUNNER_TEMP/upload" "$GITHUB_WORKSPACE/.copilot-runtime"
+          python -c 'import json; r=json.load(open(".copilot-runtime/runtime-report.json")); assert r["native_ready"] and r["svg_html_ready"], r'
+          python .copilot-runtime/scripts/render_html.py .copilot-runtime/examples/sample.json "$RUNNER_TEMP/copilot-sample"
+          node .copilot-runtime/html/native.mjs "$RUNNER_TEMP/copilot-sample"
+          test -s "$RUNNER_TEMP/copilot-sample/deck-native.pptx"
 
   template-parity:
     runs-on: ubuntu-24.04
@@ -54,7 +70,10 @@ jobs:
       - name: Verify frozen HTML catalog and compare all pages independently
         run: |
           echo '2e93b9ed51362805d90ccc82df4476444022493b0fa70757a029051cd5ca8d29  skills/ai-slide-engine/templates/catalog.zip' | sha256sum -c -
-          node tests/pixel_parity.mjs .parity-upstream skills/ai-slide-engine/templates/catalog.zip
+          python scripts/package_copilot_skill.py
+          python -m zipfile -e dist/ai-slide-engine-copilot.zip "$RUNNER_TEMP/upload"
+          python "$RUNNER_TEMP/upload/scripts/bootstrap_copilot.py" "$RUNNER_TEMP/upload" "$GITHUB_WORKSPACE/.copilot-runtime" --restore-only
+          SKILL_ROOT="$GITHUB_WORKSPACE/.copilot-runtime" node tests/pixel_parity.mjs .parity-upstream .copilot-runtime/templates/catalog.zip
   aws-official:
     runs-on: ubuntu-24.04
     steps:
@@ -122,4 +141,8 @@ jobs:
       - run: npx playwright-core install chromium
       - run: ln -s "$GITHUB_WORKSPACE/node_modules" .parity-upstream/node_modules
       - name: Compare original PPTX and HTML PPTX with independent rendering
-        run: node tests/pptx_parity.mjs .parity-upstream "$RUNNER_TEMP/pptx-parity"
+        run: |
+          python scripts/package_copilot_skill.py
+          python -m zipfile -e dist/ai-slide-engine-copilot.zip "$RUNNER_TEMP/upload"
+          python "$RUNNER_TEMP/upload/scripts/bootstrap_copilot.py" "$RUNNER_TEMP/upload" "$GITHUB_WORKSPACE/.copilot-runtime" --restore-only
+          SKILL_ROOT="$GITHUB_WORKSPACE/.copilot-runtime" node tests/pptx_parity.mjs .parity-upstream "$RUNNER_TEMP/pptx-parity"

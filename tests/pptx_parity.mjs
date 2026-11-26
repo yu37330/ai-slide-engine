@@ -5,9 +5,10 @@ import {pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright-core';
 import {NAMES,THEMES} from '../scripts/compile_templates.mjs';
-import {run} from '../skills/ai-slide-engine/html/native.mjs';
+
 const up=path.resolve(process.argv[2]),out=path.resolve(process.argv[3]);
-const root=path.resolve('skills/ai-slide-engine'),catalog=path.join(root,'templates/catalog.zip');
+const root=path.resolve(process.env.SKILL_ROOT||'skills/ai-slide-engine'),catalog=path.join(root,'templates/catalog.zip');
+const {run}=await import(pathToFileURL(path.join(root,'html/native.mjs')).href);
 const fontDir=path.join(up,'marp/themes/assets'),py=process.env.PYTHON||'python';
 process.env.CHROME_PATH=chromium.executablePath();
 const {exportPptx}=await import(pathToFileURL(path.join(up,'marp/pptx/index.mjs')).href);
